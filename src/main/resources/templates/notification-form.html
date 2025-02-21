@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Notification</title>
+    <style>
+		/* White Background */
+		body {
+		    font-family: 'Poppins', sans-serif;
+		    background-color: white;
+		    display: flex;
+		    justify-content: center;
+		    align-items: center;
+		    height: 100vh;
+		    margin: 0;
+		}
+
+		/* Card container */
+		.container {
+		    background-color: white;
+		    padding: 30px;
+		    border-radius: 12px;
+		    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.2);
+		    width: 380px;
+		    text-align: center;
+		    animation: fadeIn 0.6s ease-in-out;
+		    border: 2px solid black; /* Added black border */
+		}
+
+
+        /* Heading */
+        h2 {
+            color: #007AFF;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        /* Labels */
+        label {
+            font-weight: 600;
+            display: block;
+            text-align: left;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        /* Inputs & Dropdown */
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        /* Input focus effect */
+        input:focus, select:focus, textarea:focus {
+            border-color: #007AFF;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 122, 255, 0.4);
+        }
+
+        textarea {
+            height: 80px;
+            resize: none;
+        }
+
+        /* Button */
+        button {
+            background: #007AFF;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.3s ease-in-out;
+        }
+
+        /* Button Hover Effect */
+        button:hover {
+            background: #005bb5;
+            transform: scale(1.02);
+        }
+
+        /* Success & Error Messages */
+        .message-box {
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Fade-in animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔔 Send Notification</h2>
+
+        <!-- Success & Error Messages -->
+        <div id="successMessage" class="message-box success-message">
+            ✅ Notification Sent Successfully!
+        </div>
+        <div id="errorMessage" class="message-box error-message">
+            ❌ Failed to send notification. Please try again.
+        </div>
+
+        <form id="notificationForm">
+            <label for="projectId">Project ID:</label>
+            <select id="projectId" name="projectId" required>
+                <option value="">Select Project</option>
+            </select>
+
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" placeholder="Enter title" required>
+
+            <label for="message">Message:</label>
+            <textarea id="message" name="message" placeholder="Enter message" required></textarea>
+
+            <label for="imageUrl">Image URL:</label>
+            <input type="text" id="imageUrl" name="imageUrl" placeholder="Optional">
+
+            <label for="userGroup">User Group:</label>
+            <select id="userGroup" name="userGroup" required>
+                <option value="">Select Group</option>
+            </select>
+
+            <button type="submit">🔔 Send Notification</button>
+        </form>
+    </div>
+
+    <script>
+        const jwtToken = localStorage.getItem("token"); 
+
+        if (!jwtToken) {
+            alert("Unauthorized! Please log in.");
+            window.location.href = "/login";
+        }
+
+        async function fetchData(url, dropdownId) {
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${jwtToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include"
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch data from ${url}`);
+                }
+
+                const data = await response.json();
+                const dropdown = document.getElementById(dropdownId);
+                dropdown.innerHTML = '<option value="">Select</option>';
+                
+                data.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item;
+                    option.textContent = item;
+                    dropdown.appendChild(option);
+                });
+            } catch (error) {
+                console.error(`Error fetching ${dropdownId}:`, error);
+            }
+        }
+
+        async function sendNotification(event) {
+            event.preventDefault();
+
+            const requestData = {
+                projectId: document.getElementById("projectId").value,
+                title: document.getElementById("title").value,
+                message: document.getElementById("message").value,
+                imageUrl: document.getElementById("imageUrl").value,
+                userGroup: document.getElementById("userGroup").value
+            };
+
+            try {
+                const response = await fetch("http://localhost:8080/api/send", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${jwtToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    document.getElementById("successMessage").style.display = "block";
+                    document.getElementById("errorMessage").style.display = "none";
+                    document.getElementById("notificationForm").reset();
+                } else {
+                    const errorData = await response.text();
+                    document.getElementById("errorMessage").textContent = `Error: ${errorData}`;
+                    document.getElementById("errorMessage").style.display = "block";
+                }
+            } catch (error) {
+                document.getElementById("errorMessage").textContent = "Error: " + error.message;
+                document.getElementById("errorMessage").style.display = "block";
+            }
+        }
+
+        document.getElementById("notificationForm").addEventListener("submit", sendNotification);
+        
+        fetchData("http://localhost:8080/api/project-ids", "projectId");
+        fetchData("http://localhost:8080/api/user-groups", "userGroup");
+    </script>
+</body>
+</html>
